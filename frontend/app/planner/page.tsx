@@ -280,7 +280,7 @@ export default function PlannerPage() {
     horizon: "",
   });
   const [loading, setLoading] = useState(false);
-
+  const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [result, setResult] = useState<{
     surplus: number;
     savingsRate: number;
@@ -291,6 +291,9 @@ export default function PlannerPage() {
     goalTarget: number;
     estimatedYears: number;
     goalProgress: number;
+    growth5: number;
+    growth10: number;
+    growth20: number;
     advice: string;
     investments: {
       name: string;
@@ -567,29 +570,43 @@ doc.save("AI-Wealth-Report.pdf");
                     horizon: formData.horizon,
                   }),
                 });
-                const data = await response.json();
-                if (response.ok) {
-                  setResult({
-                      surplus: data.surplus,
-                      savingsRate: data.savingsRate,
-                      healthScore: data.healthScore,
-                      investments: data.investments || [],
-                      actionPlan: data.actionPlan || [],
-                      recommendedEmergencyFund:
-                        data.recommendedEmergencyFund || 0,
-                      emergencyProgress:
-                        data.emergencyProgress || 0,
-                      goalTarget:
-                        data.goalTarget || 0,
-                      estimatedYears:
-                        data.estimatedYears || 0,
-                      goalProgress:
-                        data.goalProgress || 0,
-                      advice:
-                        data.advice || "",
-                    });
-                    setLoading(false);
+
+                if (!response.ok) {
+                  throw new Error(`Request failed with status ${response.status}`);
                 }
+
+                const data = await response.json();
+                console.log("BACKEND RESPONSE:");
+                console.log(data);
+
+                if (!data) {
+                  throw new Error("No data returned from server");
+                }
+
+                setResult({
+                    surplus: data.surplus,
+                    savingsRate: data.savingsRate,
+                    healthScore: data.healthScore,
+                    growth5: data.growth5,
+                    growth10: data.growth10,
+                    growth20: data.growth20,
+                    investments: data.investments || [],
+                    actionPlan: data.actionPlan || [],
+                    recommendedEmergencyFund:
+                      data.recommendedEmergencyFund || 0,
+                    emergencyProgress:
+                      data.emergencyProgress || 0,
+                    goalTarget:
+                      data.goalTarget || 0,
+                    estimatedYears:
+                      data.estimatedYears || 0,
+                    goalProgress:
+                      data.goalProgress || 0,
+                    advice:
+                      data.advice || "",
+                  });
+              } catch (error) {
+                console.error("Failed to analyse finances:", error);
               } finally {
                 setLoading(false);
               }
@@ -639,6 +656,62 @@ doc.save("AI-Wealth-Report.pdf");
     Download PDF Report
   </button>
 )}
+{result && (
+  <button
+    onClick={async () => {
+      const response = await fetch(
+        "http://127.0.0.1:8000/save-plan",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            age: Number(formData.age),
+            city: formData.city,
+            income: Number(formData.income),
+            expenses: Number(formData.expenses),
+            savings: Number(formData.savings),
+            goal: formData.goal,
+            risk: formData.risk,
+            horizon: formData.horizon,
+            advice: result.advice,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      alert(data.message);
+    }}
+    className="mt-4 ml-4 px-6 py-3 rounded-xl"
+    style={{
+      background: "#6366f1",
+      color: "#fff",
+    }}
+  >
+    Save Plan
+  </button>
+)}
+<button
+  onClick={async () => {
+    const response = await fetch(
+      "http://127.0.0.1:8000/plans"
+    );
+
+    const data = await response.json();
+
+    setSavedPlans(data);
+  }}
+  className="mt-4 ml-4 px-6 py-3 rounded-xl"
+  style={{
+    background: "#f59e0b",
+    color: "#fff",
+  }}
+>
+  View Saved Plans
+</button>
         </div>
 
         {/* Results */}
@@ -698,6 +771,47 @@ doc.save("AI-Wealth-Report.pdf");
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#475569" }}>
                   Goal Progress
                 </p>
+                {result && (
+  <div className="mt-8 border border-gray-700 rounded p-4">
+    <h2 className="text-2xl font-bold mb-4">
+      Portfolio Growth Simulator
+    </h2>
+
+    <div className="space-y-3">
+
+      <div>
+        <p className="font-semibold">
+          After 5 Years
+        </p>
+
+        <p className="text-green-400 text-xl">
+          ₹{result.growth5.toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="font-semibold">
+          After 10 Years
+        </p>
+
+        <p className="text-green-400 text-xl">
+          ₹{result.growth10.toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="font-semibold">
+          After 20 Years
+        </p>
+
+        <p className="text-green-400 text-xl">
+          ₹{result.growth20.toLocaleString()}
+        </p>
+      </div>
+
+    </div>
+  </div>
+)}
                 <div className="mt-6 border border-gray-700 rounded p-4">
   <h2 className="text-2xl font-bold mb-4">
     AI Financial Advisor
@@ -902,7 +1016,28 @@ doc.save("AI-Wealth-Report.pdf");
                       </div>
                     )}
                   </div>
+                  
                 ))}
+                {savedPlans.length > 0 && (
+  <div className="mt-8 border border-gray-700 rounded p-4">
+    <h2 className="text-2xl font-bold mb-4">
+      Saved Plans
+    </h2>
+
+    {savedPlans.map((plan) => (
+      <div
+        key={plan.id}
+        className="border border-gray-600 rounded p-3 mb-3"
+      >
+        <p><strong>Name:</strong> {plan.name}</p>
+        <p><strong>Goal:</strong> {plan.goal}</p>
+        <p><strong>Risk:</strong> {plan.risk}</p>
+        <p><strong>Income:</strong> ₹{plan.income}</p>
+        <p><strong>City:</strong> {plan.city}</p>
+      </div>
+    ))}
+  </div>
+)}
               </div>
             </div>
           </div>

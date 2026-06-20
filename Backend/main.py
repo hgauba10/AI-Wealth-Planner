@@ -1,16 +1,20 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
-import os
 from dotenv import load_dotenv
-genai.configure(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
-model = genai.GenerativeModel(
-    "gemini-2.5-flash"
-)
+import google.generativeai as genai
+
+# Load environment variables first before configuring services
 load_dotenv()
+
+from database import engine, SessionLocal
+from models import Base, UserPlan
+
+Base.metadata.create_all(bind=engine)
+
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 app = FastAPI()
 
@@ -34,15 +38,35 @@ class UserData(BaseModel):
     horizon: str
 
 
+class SavePlanRequest(BaseModel):
+    name: str
+    age: int
+    city: str
+    income: float
+    expenses: float
+    savings: float
+    goal: str
+    risk: str
+    horizon: str
+    advice: str
+
+
 @app.get("/")
 def root():
     return {"message": "AI Wealth Planner API"}
+
+
+def future_value(monthly, annual_rate, years):
+    r = annual_rate / 100 / 12
+    n = years * 12
+    return monthly * (((1 + r) ** n - 1) / r)
 
 
 @app.post("/analyze")
 def analyze(data: UserData):
     # Base variables calculated first to prevent NameError
     surplus = data.income - data.expenses
+    monthly_investment = surplus
     recommended_emergency_fund = data.expenses * 6
 
     goal_target = 0
@@ -60,7 +84,6 @@ def analyze(data: UserData):
     else:
         goal_target = 1000000
 
-    monthly_investment = surplus
     annual_investment = monthly_investment * 12
 
     estimated_years = (
@@ -68,14 +91,12 @@ def analyze(data: UserData):
         if annual_investment > 0
         else 0
     )
+    
     goal_progress = (
-    min(
-        (data.savings / goal_target) * 100,
-        100
+        min((data.savings / goal_target) * 100, 100)
+        if goal_target > 0
+        else 0
     )
-    if goal_target > 0
-    else 0
-)
 
     emergency_progress = (
         min((data.savings / recommended_emergency_fund) * 100, 100)
@@ -99,6 +120,7 @@ def analyze(data: UserData):
         health_score = 40
     else:
         health_score = 20
+
     prompt = f"""
         You are a financial advisor.
 
@@ -114,18 +136,16 @@ def analyze(data: UserData):
         Financial Health Score: {health_score}/100
 
         Give concise personalized financial advice
-        in 3-5 sentences.
+        in 3-5 sentences.Provide advice for Indian investors only.
+        Use Indian financial products such as PPF, NPS, SIP, FD, Debt Funds, Gold ETFs.
+        Do not mention 401(k), IRA, Roth IRA or US-specific investment products.
         """
     try:
         response = model.generate_content(prompt)
         advice = response.text
-
     except Exception as e:
         print("Gemini Error:", e)
-
-        advice = (
-            "AI advice temporarily unavailable due to API limits."
-        )
+        advice = "AI advice temporarily unavailable due to API limits."
 
     investments = []
     action_plan = []
@@ -578,8 +598,23 @@ def analyze(data: UserData):
             "Review allocation every 6 months"
         ]
 
+    if data.risk == "High":
+        annual_return = 12
+    elif data.risk == "Moderate":
+        annual_return = 10
+    else:
+        annual_return = 7
+
+    # Fixed syntax parentheses errors below
+    growth_5 = round(future_value(monthly_investment, annual_return, 5))
+    growth_10 = round(future_value(monthly_investment, annual_return, 10))
+    growth_20 = round(future_value(monthly_investment, annual_return, 20))
+
     return {
         "surplus": surplus,
+        "growth5": growth_5,
+        "growth10": growth_10,
+        "growth20": growth_20,
         "savingsRate": savings_rate,
         "healthScore": health_score,
         "investments": investments,
@@ -591,3 +626,45 @@ def analyze(data: UserData):
         "goalProgress": goal_progress,
         "advice": advice,
     }
+
+
+@app.get("/plans")
+def get_plans():
+    db = SessionLocal()
+    try:
+        plans = db.query(UserPlan).all()
+        return plans
+    finally:
+        db.close()
+
+@app.get("/plans")
+def get_plans():
+
+    db = SessionLocal()
+
+    plans = db.query(UserPlan).all()
+
+    return plans
+
+@app.post("/save-plan")
+def save_plan(data: SavePlanRequest):
+    db = SessionLocal()
+    try:
+        plan = UserPlan(
+            name=data.name,
+            age=data.age,
+            city=data.city,
+            income=data.income,
+            expenses=data.expenses,
+            savings=data.savings,
+            goal=data.goal,
+            risk=data.risk,
+            horizon=data.horizon,
+            advice=data.advice,
+        )
+        db.add(plan)
+        db.commit()
+        db.refresh(plan)
+        return {"message": "Plan saved successfully", "id": plan.id}
+    finally:
+        db.close()
