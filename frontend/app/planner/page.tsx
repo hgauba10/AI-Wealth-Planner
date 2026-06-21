@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Tooltip } from "recharts";
 import jsPDF from "jspdf";
+import Link from "next/link";
 
 // ── 3D Pie Chart (canvas-based) ──────────────────────────────────────────────
 const COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#f43f5e", "#a78bfa"];
