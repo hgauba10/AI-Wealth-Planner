@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Tooltip } from "recharts";
 import jsPDF from "jspdf";
 
@@ -268,6 +269,7 @@ const inputStyle = {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function PlannerPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     age: "",
@@ -279,7 +281,29 @@ export default function PlannerPage() {
     risk: "",
     horizon: "",
   });
+  const [username, setUsername] = useState("");
+  useEffect(() => {
+
+  const userId =
+    localStorage.getItem("userId");
+
+  if (!userId) {
+    router.push("/login");
+  }
+
+}, [router]);
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+
+  const userId =
+    localStorage.getItem("userId");
+
+  if (!userId) {
+    router.push("/login");
+  }
+
+}, [router]);
+
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [result, setResult] = useState<{
     surplus: number;
@@ -448,9 +472,33 @@ doc.save("AI-Wealth-Report.pdf");
               <circle cx="7" cy="7" r="2" fill="#fff" />
             </svg>
           </div>
-          <span className="font-semibold text-sm tracking-wide" style={{ color: "#f1f5f9" }}>
-            FinPlan <span style={{ color: "#6366f1" }}>AI</span>
-          </span>
+          <div className="flex items-center gap-4">
+
+  {username && (
+    <span style={{ color: "#94a3b8" }}>
+      Welcome, {username}
+    </span>
+  )}
+
+  <button
+    onClick={() => {
+
+      localStorage.removeItem("userId");
+      localStorage.removeItem("username");
+
+      router.push("/login");
+
+    }}
+    className="px-3 py-1 rounded-lg"
+    style={{
+      background: "#ef4444",
+      color: "#fff",
+    }}
+  >
+    Logout
+  </button>
+
+</div>
         </div>
       </header>
 
@@ -460,6 +508,14 @@ doc.save("AI-Wealth-Report.pdf");
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6366f1" }}>
             Personal Finance Intelligence
           </p>
+          {username && (
+  <p
+    className="mb-3"
+    style={{ color: "#22d3ee" }}
+  >
+    Welcome, {username}
+  </p>
+)}
           <h1
             className="text-5xl font-bold leading-tight"
             style={{
@@ -677,6 +733,9 @@ doc.save("AI-Wealth-Report.pdf");
             risk: formData.risk,
             horizon: formData.horizon,
             advice: result.advice,
+            userId: Number(
+  localStorage.getItem("userId")
+),
           }),
         }
       );

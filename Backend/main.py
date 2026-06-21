@@ -10,6 +10,9 @@ load_dotenv()
 
 from database import engine, SessionLocal
 from models import Base, UserPlan
+from auth import hash_password
+from auth import verify_password
+from models import User
 
 Base.metadata.create_all(bind=engine)
 
@@ -49,7 +52,14 @@ class SavePlanRequest(BaseModel):
     risk: str
     horizon: str
     advice: str
-
+    userId: int
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 @app.get("/")
 def root():
@@ -646,6 +656,20 @@ def get_plans():
 
     return plans
 
+@app.get("/plans/{user_id}")
+def get_user_plans(user_id: int):
+
+    db = SessionLocal()
+
+    plans = (
+        db.query(UserPlan)
+        .filter(
+            UserPlan.user_id == user_id
+        )
+        .all()
+    )
+
+    return plans
 @app.post("/save-plan")
 def save_plan(data: SavePlanRequest):
     db = SessionLocal()
@@ -661,6 +685,7 @@ def save_plan(data: SavePlanRequest):
             risk=data.risk,
             horizon=data.horizon,
             advice=data.advice,
+            user_id=data.userId
         )
         db.add(plan)
         db.commit()
@@ -668,3 +693,66 @@ def save_plan(data: SavePlanRequest):
         return {"message": "Plan saved successfully", "id": plan.id}
     finally:
         db.close()
+@app.post("/signup")
+def signup(data: SignupRequest):
+
+    db = SessionLocal()
+
+    existing_user = (
+        db.query(User)
+        .filter(
+            User.email == data.email
+        )
+        .first()
+    )
+
+    if existing_user:
+        return {
+            "message": "User already exists"
+        }
+
+    user = User(
+        username=data.username,
+        email=data.email,
+        password=hash_password(
+            data.password
+        )
+    )
+
+    db.add(user)
+    db.commit()
+
+    return {
+        "message": "Signup successful"
+    }
+@app.post("/login")
+def login(data: LoginRequest):
+
+    db = SessionLocal()
+
+    user = (
+        db.query(User)
+        .filter(
+            User.email == data.email
+        )
+        .first()
+    )
+
+    if not user:
+        return {
+            "message": "User not found"
+        }
+
+    if not verify_password(
+        data.password,
+        user.password
+    ):
+        return {
+            "message": "Invalid password"
+        }
+
+    return {
+        "message": "Login successful",
+        "userId": user.id,
+        "username": user.username
+    }
