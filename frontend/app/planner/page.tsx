@@ -612,20 +612,23 @@ doc.save("AI-Wealth-Report.pdf");
             onClick={async () => {
               setLoading(true);
               try {
-                const response = await fetch("http://127.0.0.1:8000/analyze", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    income: Number(formData.income),
-                    expenses: Number(formData.expenses),
-                    savings: Number(formData.savings),
-                    risk: formData.risk,
-                    goal: formData.goal,
-                    city: formData.city,
-                    age: Number(formData.age),
-                    horizon: formData.horizon,
-                  }),
-                });
+                const response = await fetch(
+  `${process.env.NEXT_PUBLIC_API_URL}/analyze`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      income: Number(formData.income),
+      expenses: Number(formData.expenses),
+      savings: Number(formData.savings),
+      risk: formData.risk,
+      goal: formData.goal,
+      city: formData.city,
+      age: Number(formData.age),
+      horizon: formData.horizon,
+    }),
+  }
+);
 
                 if (!response.ok) {
                   throw new Error(`Request failed with status ${response.status}`);
@@ -716,12 +719,12 @@ doc.save("AI-Wealth-Report.pdf");
   <button
     onClick={async () => {
       const response = await fetch(
-        "http://127.0.0.1:8000/save-plan",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+  `${process.env.NEXT_PUBLIC_API_URL}/save-plan`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
           body: JSON.stringify({
             name: formData.name,
             age: Number(formData.age),
@@ -756,8 +759,8 @@ doc.save("AI-Wealth-Report.pdf");
 <button
   onClick={async () => {
     const response = await fetch(
-      "http://127.0.0.1:8000/plans"
-    );
+  `${process.env.NEXT_PUBLIC_API_URL}/plans/${userId}`
+);
 
     const data = await response.json();
 
