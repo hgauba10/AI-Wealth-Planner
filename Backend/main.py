@@ -758,3 +758,17 @@ def login(data: LoginRequest):
         "userId": user.id,
         "username": user.username
     }
+@app.get("/users")
+def get_users():
+    db = SessionLocal()
+
+    users = db.query(User).all()
+
+    return [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+        }
+        for user in users
+    ]
