@@ -759,6 +759,7 @@ doc.save("AI-Wealth-Report.pdf");
 )}
 <button
   onClick={async () => {
+    const userId = localStorage.getItem("userId");
     const response = await fetch(
   `${process.env.NEXT_PUBLIC_API_URL}/plans/${userId}`
 );
