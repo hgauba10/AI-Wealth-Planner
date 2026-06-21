@@ -282,29 +282,9 @@ export default function PlannerPage() {
     risk: "",
     horizon: "",
   });
+  
   const [username, setUsername] = useState("");
-  useEffect(() => {
-
-  const userId =
-    localStorage.getItem("userId");
-
-  if (!userId) {
-    router.push("/login");
-  }
-
-}, [router]);
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-
-  const userId =
-    localStorage.getItem("userId");
-
-  if (!userId) {
-    router.push("/login");
-  }
-
-}, [router]);
-
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [result, setResult] = useState<{
     surplus: number;
@@ -330,6 +310,13 @@ export default function PlannerPage() {
       steps?: string[];
     }[];
   } | null>(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      router.push("/login");
+    }
+  }, [router]);
 
   const set = (k: string, v: string) =>
     setFormData((prev) => ({ ...prev, [k]: v }));
@@ -361,85 +348,44 @@ export default function PlannerPage() {
         ? "Average"
         : "Needs Work"
       : "";
-    const downloadReport = () => {
-  if (!result) return;
 
-  const doc = new jsPDF();
+  const downloadReport = () => {
+    if (!result) return;
 
-  doc.setFontSize(20);
-  doc.text("AI Wealth Planner Report", 20, 20);
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text("AI Wealth Planner Report", 20, 20);
 
-  doc.setFontSize(12);
+    doc.setFontSize(12);
+    doc.text(`Financial Health Score: ${result.healthScore}/100`, 20, 40);
+    doc.text(`Monthly Surplus: ₹${result.surplus.toLocaleString()}`, 20, 50);
+    doc.text(`Savings Rate: ${result.savingsRate.toFixed(2)}%`, 20, 60);
+    doc.text(`Goal Target: ₹${result.goalTarget.toLocaleString()}`, 20, 70);
+    doc.text(`Estimated Time: ${result.estimatedYears} Years`, 20, 80);
 
-  doc.text(
-    `Financial Health Score: ${result.healthScore}/100`,
-    20,
-    40
-  );
+    doc.text("AI Advice:", 20, 100);
+    doc.text(result.advice, 20, 110, { maxWidth: 160 });
 
-  doc.text(
-  `Monthly Surplus: ₹${result.surplus.toLocaleString()}`,
-  20,
-  50
-);
+    let y = 140;
+    doc.text("Recommended Investments:", 20, y);
+    y += 10;
 
-  doc.text(
-    `Savings Rate: ${result.savingsRate.toFixed(2)}%`,
-    20,
-    60
-  );
+    result.investments.forEach((investment) => {
+      doc.text(`${investment.name} (${investment.allocation}%)`, 25, y);
+      y += 10;
+    });
 
-  doc.text(
-  `Goal Target: ₹${result.goalTarget.toLocaleString()}`,
-  20,
-  70
-);
+    y += 10;
+    doc.text("Action Plan:", 20, y);
+    y += 10;
 
-  doc.text(
-    `Estimated Time: ${result.estimatedYears} Years`,
-    20,
-    80
-  );
+    result.actionPlan.forEach((step) => {
+      doc.text(`• ${step}`, 25, y);
+      y += 10;
+    });
 
-  doc.text("AI Advice:", 20, 100);
-
-  doc.text(
-    result.advice,
-    20,
-    110,
-    {
-      maxWidth: 160,
-    }
-  );
-let y = 140;
-
-doc.text("Recommended Investments:", 20, y);
-
-y += 10;
-
-result.investments.forEach((investment) => {
-  doc.text(
-    `${investment.name} (${investment.allocation}%)`,
-    25,
-    y
-  );
-
-  y += 10;
-});
-
-y += 10;
-
-doc.text("Action Plan:", 20, y);
-
-y += 10;
-console.log(result.actionPlan);
-result.actionPlan.forEach((step) => {
-  doc.text(`• ${step}`, 25, y);
-  y += 10;
-});
-
-doc.save("AI-Wealth-Report.pdf");
-};
+    doc.save("AI-Wealth-Report.pdf");
+  };
 
   return (
     <main
@@ -461,45 +407,39 @@ doc.save("AI-Wealth-Report.pdf");
           zIndex: 50,
         }}
       >
-        <div
-          className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-3"
-        >
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#6366f1,#22d3ee)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1.5L12 4.5V9.5L7 12.5L2 9.5V4.5L7 1.5Z" stroke="#fff" strokeWidth="1.4" fill="none" />
-              <circle cx="7" cy="7" r="2" fill="#fff" />
-            </svg>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg,#6366f1,#22d3ee)" }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1.5L12 4.5V9.5L7 12.5L2 9.5V4.5L7 1.5Z" stroke="#fff" strokeWidth="1.4" fill="none" />
+                <circle cx="7" cy="7" r="2" fill="#fff" />
+              </svg>
+            </div>
           </div>
           <div className="flex items-center gap-4">
-
-  {username && (
-    <span style={{ color: "#94a3b8" }}>
-      Welcome, {username}
-    </span>
-  )}
-
-  <button
-    onClick={() => {
-
-      localStorage.removeItem("userId");
-      localStorage.removeItem("username");
-
-      router.push("/login");
-
-    }}
-    className="px-3 py-1 rounded-lg"
-    style={{
-      background: "#ef4444",
-      color: "#fff",
-    }}
-  >
-    Logout
-  </button>
-
-</div>
+            {username && (
+              <span style={{ color: "#94a3b8" }}>
+                Welcome, {username}
+              </span>
+            )}
+            <button
+              onClick={() => {
+                localStorage.removeItem("userId");
+                localStorage.removeItem("username");
+                router.push("/login");
+              }}
+              className="px-3 py-1 rounded-lg"
+              style={{
+                background: "#ef4444",
+                color: "#fff",
+              }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -509,14 +449,6 @@ doc.save("AI-Wealth-Report.pdf");
           <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#6366f1" }}>
             Personal Finance Intelligence
           </p>
-          {username && (
-  <p
-    className="mb-3"
-    style={{ color: "#22d3ee" }}
-  >
-    Welcome, {username}
-  </p>
-)}
           <h1
             className="text-5xl font-bold leading-tight"
             style={{
@@ -609,41 +541,39 @@ doc.save("AI-Wealth-Report.pdf");
             </Field>
           </div>
 
-          <button
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const response = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/analyze`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      income: Number(formData.income),
-      expenses: Number(formData.expenses),
-      savings: Number(formData.savings),
-      risk: formData.risk,
-      goal: formData.goal,
-      city: formData.city,
-      age: Number(formData.age),
-      horizon: formData.horizon,
-    }),
-  }
-);
+          <div className="flex flex-wrap items-center gap-4 mt-7">
+            <button
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/analyze`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        income: Number(formData.income),
+                        expenses: Number(formData.expenses),
+                        savings: Number(formData.savings),
+                        risk: formData.risk,
+                        goal: formData.goal,
+                        city: formData.city,
+                        age: Number(formData.age),
+                        horizon: formData.horizon,
+                      }),
+                    }
+                  );
 
-                if (!response.ok) {
-                  throw new Error(`Request failed with status ${response.status}`);
-                }
+                  if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                  }
 
-                const data = await response.json();
-                console.log("BACKEND RESPONSE:");
-                console.log(data);
+                  const data = await response.json();
+                  if (!data) {
+                    throw new Error("No data returned from server");
+                  }
 
-                if (!data) {
-                  throw new Error("No data returned from server");
-                }
-
-                setResult({
+                  setResult({
                     surplus: data.surplus,
                     savingsRate: data.savingsRate,
                     healthScore: data.healthScore,
@@ -652,133 +582,136 @@ doc.save("AI-Wealth-Report.pdf");
                     growth20: data.growth20,
                     investments: data.investments || [],
                     actionPlan: data.actionPlan || [],
-                    recommendedEmergencyFund:
-                      data.recommendedEmergencyFund || 0,
-                    emergencyProgress:
-                      data.emergencyProgress || 0,
-                    goalTarget:
-                      data.goalTarget || 0,
-                    estimatedYears:
-                      data.estimatedYears || 0,
-                    goalProgress:
-                      data.goalProgress || 0,
-                    advice:
-                      data.advice || "",
+                    recommendedEmergencyFund: data.recommendedEmergencyFund || 0,
+                    emergencyProgress: data.emergencyProgress || 0,
+                    goalTarget: data.goalTarget || 0,
+                    estimatedYears: data.estimatedYears || 0,
+                    goalProgress: data.goalProgress || 0,
+                    advice: data.advice || "",
                   });
-              } catch (error) {
-                console.error("Failed to analyse finances:", error);
-              } finally {
-                setLoading(false);
-              }
-            }}
-            disabled={loading}
-            className="mt-7 flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all"
-            style={{
-              background: loading
-                ? "#1e293b"
-                : "linear-gradient(135deg,#6366f1,#818cf8)",
-              color: loading ? "#475569" : "#fff",
-              cursor: loading ? "not-allowed" : "pointer",
-              boxShadow: loading ? "none" : "0 0 28px #6366f144",
-            }}
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="#475569" strokeWidth="3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                Analysing…
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 1v14M1 8h14" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Analyse My Finances
-              </>
+                } catch (error) {
+                  console.error("Failed to analyse finances:", error);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm transition-all"
+              style={{
+                background: loading
+                  ? "#1e293b"
+                  : "linear-gradient(135deg,#6366f1,#818cf8)",
+                color: loading ? "#475569" : "#fff",
+                cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: loading ? "none" : "0 0 28px #6366f144",
+              }}
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="#475569" strokeWidth="3" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  Analysing…
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1v14M1 8h14" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Analyse My Finances
+                </>
+              )}
+            </button>
+
+            {result && (
+              <button
+                onClick={downloadReport}
+                className="px-6 py-3 rounded-xl font-semibold text-sm"
+                style={{ background: "#10b981", color: "#fff" }}
+              >
+                Download PDF Report
+              </button>
             )}
-          </button>
+
+            {result && (
+              <button
+                onClick={async () => {
+                  const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/save-plan`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: formData.name,
+                        age: Number(formData.age),
+                        city: formData.city,
+                        income: Number(formData.income),
+                        expenses: Number(formData.expenses),
+                        savings: Number(formData.savings),
+                        goal: formData.goal,
+                        risk: formData.risk,
+                        horizon: formData.horizon,
+                        advice: result.advice,
+                        userId: Number(localStorage.getItem("userId")),
+                      }),
+                    }
+                  );
+                  const data = await response.json();
+                  alert(data.message);
+                }}
+                className="px-6 py-3 rounded-xl font-semibold text-sm"
+                style={{ background: "#6366f1", color: "#fff" }}
+              >
+                Save Plan
+              </button>
+            )}
+
+            <button
+              onClick={async () => {
+                const userId = localStorage.getItem("userId");
+                const response = await fetch(
+                  `${process.env.NEXT_PUBLIC_API_URL}/plans/${userId}`
+                );
+                const data = await response.json();
+                setSavedPlans(data);
+              }}
+              className="px-6 py-3 rounded-xl font-semibold text-sm"
+              style={{ background: "#f59e0b", color: "#fff" }}
+            >
+              View Saved Plans
+            </button>
+          </div>
+
           {loading && (
-  <p className="text-yellow-400 mt-3">
-    AI is analyzing your finances...
-  </p>
-)}
-          {result && (
-  <button
-    onClick={downloadReport}
-    className="mt-4 ml-4 px-6 py-3 rounded-xl"
-    style={{
-      background: "#10b981",
-      color: "#fff",
-    }}
-  >
-    Download PDF Report
-  </button>
-)}
-{result && (
-  <button
-    onClick={async () => {
-      const response = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/save-plan`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-          body: JSON.stringify({
-            name: formData.name,
-            age: Number(formData.age),
-            city: formData.city,
-            income: Number(formData.income),
-            expenses: Number(formData.expenses),
-            savings: Number(formData.savings),
-            goal: formData.goal,
-            risk: formData.risk,
-            horizon: formData.horizon,
-            advice: result.advice,
-            userId: Number(
-  localStorage.getItem("userId")
-),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      alert(data.message);
-    }}
-    className="mt-4 ml-4 px-6 py-3 rounded-xl"
-    style={{
-      background: "#6366f1",
-      color: "#fff",
-    }}
-  >
-    Save Plan
-  </button>
-)}
-<button
-  onClick={async () => {
-    const userId = localStorage.getItem("userId");
-    const response = await fetch(
-  `${process.env.NEXT_PUBLIC_API_URL}/plans/${userId}`
-);
-
-    const data = await response.json();
-
-    setSavedPlans(data);
-  }}
-  className="mt-4 ml-4 px-6 py-3 rounded-xl"
-  style={{
-    background: "#f59e0b",
-    color: "#fff",
-  }}
->
-  View Saved Plans
-</button>
+            <p className="text-yellow-400 mt-3 text-sm">
+              AI is analyzing your finances...
+            </p>
+          )}
         </div>
 
-        {/* Results */}
+        {/* Saved Plans Container */}
+        {savedPlans.length > 0 && (
+          <div className="mt-8 border border-slate-800 rounded-2xl p-6 bg-[#0a1628] mb-10">
+            <h2 className="text-2xl font-bold mb-4 text-slate-200">Saved Plans</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {savedPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="border border-slate-700 rounded-xl p-4 bg-[#0f172a]"
+                >
+                  <p className="text-sm"><strong className="text-slate-400">Name:</strong> {plan.name}</p>
+                  <p className="text-sm"><strong className="text-slate-400">Goal:</strong> {plan.goal}</p>
+                  <p className="text-sm"><strong className="text-slate-400">Risk:</strong> {plan.risk}</p>
+                  <p className="text-sm"><strong className="text-slate-400">Income:</strong> ₹{plan.income.toLocaleString()}</p>
+                  <p className="text-sm"><strong className="text-slate-400">City:</strong> {plan.city}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Results Sections */}
         {result && (
           <div className="space-y-6">
             {/* Summary Stats */}
@@ -807,19 +740,21 @@ doc.save("AI-Wealth-Report.pdf");
               />
             </div>
 
-            {/* Two-column row: Emergency + Goal */}
+            {/* Two-column row: Emergency + Goal Projections */}
             <div className="grid lg:grid-cols-2 gap-6">
               <div
-                className="rounded-3xl p-6"
+                className="rounded-3xl p-6 flex flex-col justify-between"
                 style={{ background: "#0a1628", border: "1px solid #1e293b" }}
               >
-                <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#475569" }}>
-                  Emergency Fund
-                </p>
-                <h3 className="text-lg font-bold mb-4">Fund Tracker</h3>
-                <div className="flex justify-between text-sm mb-1" style={{ color: "#64748b" }}>
-                  <span>Current ₹{Number(formData.savings).toLocaleString()}</span>
-                  <span>Target ₹{result.recommendedEmergencyFund.toLocaleString()}</span>
+                <div>
+                  <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#475569" }}>
+                    Emergency Fund
+                  </p>
+                  <h3 className="text-lg font-bold mb-4">Fund Tracker</h3>
+                  <div className="flex justify-between text-sm mb-1" style={{ color: "#64748b" }}>
+                    <span>Current ₹{Number(formData.savings).toLocaleString()}</span>
+                    <span>Target ₹{result.recommendedEmergencyFund.toLocaleString()}</span>
+                  </div>
                 </div>
                 <ProgressBar
                   value={result.emergencyProgress}
@@ -835,56 +770,6 @@ doc.save("AI-Wealth-Report.pdf");
                 <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "#475569" }}>
                   Goal Progress
                 </p>
-                {result && (
-  <div className="mt-8 border border-gray-700 rounded p-4">
-    <h2 className="text-2xl font-bold mb-4">
-      Portfolio Growth Simulator
-    </h2>
-
-    <div className="space-y-3">
-
-      <div>
-        <p className="font-semibold">
-          After 5 Years
-        </p>
-
-        <p className="text-green-400 text-xl">
-          ₹{result.growth5.toLocaleString()}
-        </p>
-      </div>
-
-      <div>
-        <p className="font-semibold">
-          After 10 Years
-        </p>
-
-        <p className="text-green-400 text-xl">
-          ₹{result.growth10.toLocaleString()}
-        </p>
-      </div>
-
-      <div>
-        <p className="font-semibold">
-          After 20 Years
-        </p>
-
-        <p className="text-green-400 text-xl">
-          ₹{result.growth20.toLocaleString()}
-        </p>
-      </div>
-
-    </div>
-  </div>
-)}
-                <div className="mt-6 border border-gray-700 rounded p-4">
-  <h2 className="text-2xl font-bold mb-4">
-    AI Financial Advisor
-  </h2>
-
-  <p className="text-gray-300">
-    {result.advice}
-  </p>
-</div>
                 <h3 className="text-lg font-bold mb-4">{formData.goal || "Your Goal"}</h3>
                 <div className="flex justify-between text-sm mb-1" style={{ color: "#64748b" }}>
                   <span>Saved ₹{Number(formData.savings).toLocaleString()}</span>
@@ -895,6 +780,32 @@ doc.save("AI-Wealth-Report.pdf");
                   color="linear-gradient(90deg,#6366f1,#a78bfa)"
                   label={`${result.goalProgress.toFixed(1)}% of goal reached — ${result.estimatedYears} yrs to close the gap`}
                 />
+              </div>
+            </div>
+
+            {/* Simulator & AI Advice */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="border border-slate-800 bg-[#0a1628] rounded-3xl p-6">
+                <h3 className="text-lg font-bold mb-4 text-slate-200">Portfolio Growth Simulator</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
+                    <p className="text-xs text-slate-400 font-medium">5 Years</p>
+                    <p className="text-emerald-400 font-bold text-base mt-1">₹{result.growth5.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
+                    <p className="text-xs text-slate-400 font-medium">10 Years</p>
+                    <p className="text-emerald-400 font-bold text-base mt-1">₹{result.growth10.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#0f172a] p-3 rounded-xl border border-slate-800">
+                    <p className="text-xs text-slate-400 font-medium">20 Years</p>
+                    <p className="text-emerald-400 font-bold text-base mt-1">₹{result.growth20.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-slate-800 bg-[#0a1628] rounded-3xl p-6">
+                <h3 className="text-lg font-bold mb-3 text-slate-200">AI Financial Advisor</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{result.advice}</p>
               </div>
             </div>
 
@@ -1080,28 +991,7 @@ doc.save("AI-Wealth-Report.pdf");
                       </div>
                     )}
                   </div>
-                  
                 ))}
-                {savedPlans.length > 0 && (
-  <div className="mt-8 border border-gray-700 rounded p-4">
-    <h2 className="text-2xl font-bold mb-4">
-      Saved Plans
-    </h2>
-
-    {savedPlans.map((plan) => (
-      <div
-        key={plan.id}
-        className="border border-gray-600 rounded p-3 mb-3"
-      >
-        <p><strong>Name:</strong> {plan.name}</p>
-        <p><strong>Goal:</strong> {plan.goal}</p>
-        <p><strong>Risk:</strong> {plan.risk}</p>
-        <p><strong>Income:</strong> ₹{plan.income}</p>
-        <p><strong>City:</strong> {plan.city}</p>
-      </div>
-    ))}
-  </div>
-)}
               </div>
             </div>
           </div>
