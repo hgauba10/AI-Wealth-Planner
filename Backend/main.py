@@ -758,17 +758,11 @@ def login(data: LoginRequest):
         "userId": user.id,
         "username": user.username
     }
-@app.get("/users")
-def get_users():
+@app.get("/stats")
+def stats():
     db = SessionLocal()
 
-    users = db.query(User).all()
-
-    return [
-        {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-        }
-        for user in users
-    ]
+    return {
+        "total_users": db.query(User).count(),
+        "total_plans": db.query(UserPlan).count()
+    }
